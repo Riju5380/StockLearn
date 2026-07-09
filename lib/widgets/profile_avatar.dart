@@ -1,13 +1,23 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state_provider.dart';
 
+/// A reusable profile avatar widget that displays the user's selected profile picture.
+///
+/// Automatically retrieves profile picture path/data from [AppStateProvider].
+/// Handles database-stored base64 image strings, remote image URLs,
+/// local file images, preset avatar graphics, and default icons.
 class ProfileAvatar extends StatelessWidget {
+  /// The radius size of the circular avatar.
   final double radius;
+
+  /// The size of the icon inside the avatar if no custom image is set.
   final double iconSize;
 
+  /// Creates a [ProfileAvatar] widget.
   const ProfileAvatar({
     super.key,
     this.radius = 16,
@@ -49,8 +59,27 @@ class ProfileAvatar extends StatelessWidget {
           backgroundColor: color.withOpacity(0.2),
           child: Icon(icon, size: iconSize, color: color),
         );
+      } else if (path.startsWith('http') || path.startsWith('https')) {
+        // Remote image URL from database API
+        return CircleAvatar(
+          radius: radius,
+          backgroundColor: Colors.transparent,
+          backgroundImage: NetworkImage(path),
+        );
+      } else if (path.length > 200) {
+        // Base64 encoded image string stored in database
+        try {
+          final cleanBase64 = path.contains(',') ? path.split(',')[1] : path;
+          return CircleAvatar(
+            radius: radius,
+            backgroundColor: Colors.transparent,
+            backgroundImage: MemoryImage(base64Decode(cleanBase64)),
+          );
+        } catch (e) {
+          print('[ProfileAvatar] Failed to decode base64 avatar image: $e');
+        }
       } else {
-        // Custom device photo
+        // Custom local device photo file path
         return CircleAvatar(
           radius: radius,
           backgroundColor: Colors.transparent,
@@ -61,6 +90,7 @@ class ProfileAvatar extends StatelessWidget {
       }
     }
 
+    // Default icon avatar if no profile picture is set
     return CircleAvatar(
       radius: radius,
       backgroundColor: const Color(0xFF10B981).withOpacity(0.2),

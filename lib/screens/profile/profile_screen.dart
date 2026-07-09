@@ -509,7 +509,10 @@ class ProfileScreen extends StatelessWidget {
     }
   }
 
-  // Change password dialog
+  /// Displays the change password dialog, prompting for current and new passwords.
+  ///
+  /// Calls [AppStateProvider.updatePassword] asynchronously and displays a success
+  /// or error SnackBar upon server confirmation.
   void _showChangePasswordDialog(BuildContext context, AppStateProvider appState) {
     final oldPassCtrl = TextEditingController();
     final newPassCtrl = TextEditingController();
@@ -537,15 +540,17 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
-            onPressed: () {
-              final success = appState.updatePassword(oldPassCtrl.text, newPassCtrl.text);
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(success ? 'Password updated successfully!' : 'Incorrect current password.'),
-                  backgroundColor: success ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                ),
-              );
+            onPressed: () async {
+              final success = await appState.updatePassword(oldPassCtrl.text, newPassCtrl.text);
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success ? 'Password updated successfully!' : 'Incorrect current password.'),
+                    backgroundColor: success ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                  ),
+                );
+              }
             },
             child: const Text('Update'),
           ),

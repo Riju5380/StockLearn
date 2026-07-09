@@ -7,7 +7,13 @@ import 'course_details_screen.dart';
 import 'course_viewer_screen.dart';
 import '../../utils/dialogs.dart';
 
+/// Screen presenting the Virtual Academy Learning marketplace.
+///
+/// Contains two main tabs:
+/// 1. Browse Marketplace: List of virtual skill/trading courses available to unlock.
+/// 2. My Purchased Courses: List of unlocked courses with user progress indicators.
 class ClassesScreen extends StatefulWidget {
+  /// Creates a [ClassesScreen].
   const ClassesScreen({super.key});
 
   @override
@@ -15,11 +21,19 @@ class ClassesScreen extends StatefulWidget {
 }
 
 class _ClassesScreenState extends State<ClassesScreen> with SingleTickerProviderStateMixin {
+  /// Controller managing tab navigation between Marketplace and Purchased items.
   late TabController _tabController;
+
+  /// Controller managing user input in the search field.
   final _searchController = TextEditingController();
+
+  /// Focus node for search keyboard control.
   final _searchFocusNode = FocusNode();
+
+  /// Selected category filter (defaults to 'All').
   String _selectedCategory = 'All';
 
+  /// List of available categories for filter chips.
   final List<String> _categories = ['All', 'Trading', 'Yoga', 'Music', 'Dance'];
 
   @override
@@ -29,6 +43,7 @@ class _ClassesScreenState extends State<ClassesScreen> with SingleTickerProvider
     _tabController.addListener(_handleTabSelection);
   }
 
+  /// Synchronizes tab controller updates with AppStateProvider's active tab index.
   void _handleTabSelection() {
     if (!_tabController.indexIsChanging) {
       final appState = Provider.of<AppStateProvider>(context, listen: false);
@@ -112,6 +127,52 @@ class _ClassesScreenState extends State<ClassesScreen> with SingleTickerProvider
 
   // Browse Courses Tab
   Widget _buildBrowseTab(BuildContext context, AppStateProvider appState, bool isDark) {
+    if (appState.courses.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.school, size: 64, color: Color(0xFF10B981)),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'No Courses Published Yet',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'No virtual learning tracks have been published by the admin panel yet. Check back soon for academy content!',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14, height: 1.5),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  appState.loadApiData();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E3A8A),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(Icons.refresh, size: 20, color: Colors.white),
+                label: const Text('Reload Academy', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final searchVal = _searchController.text.toLowerCase();
 
     // Filter available courses

@@ -1,113 +1,113 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state_provider.dart';
+import '../../models/news_article.dart';
 import '../../widgets/profile_avatar.dart';
 import 'news_detail_screen.dart';
 import 'bookmarked_news_screen.dart';
 
-class NewsArticle {
-  final String id;
-  final String category;
-  final String title;
-  final String snippet;
-  final String content;
-  final String source;
-  final String timeAgo;
-  final String imageUrl;
-
-  const NewsArticle({
-    required this.id,
-    required this.category,
-    required this.title,
-    required this.snippet,
-    required this.content,
-    required this.source,
-    required this.timeAgo,
-    required this.imageUrl,
-  });
-}
-
+/// Screen presenting the financial news section.
+///
+/// Dynamically fetches and listens to market news from the [AppStateProvider]
+/// connected to the Admin Panel API.
 class NewsScreen extends StatefulWidget {
+  /// Creates a [NewsScreen] widget.
   const NewsScreen({super.key});
-
-  // Global static list of all news articles, including the featured one
-  static const List<NewsArticle> allArticles = [
-    NewsArticle(
-      id: 'n_featured',
-      category: 'Global',
-      title: 'Interest Rates Stabilize as Inflation Targets Approach',
-      snippet: 'Leading central banks indicate a shift toward neutrality as the latest consumer price index (CPI) prints align with long-term targets.',
-      content: 'Central banks in major economies have signaled that the aggressive cycle of monetary tightening is coming to an end. In their latest joint policy statement, representatives highlighted that price pressures are cooling, with the consumer price index (CPI) approaching the target rate of 2%.\n\nWhile central bankers emphasized that they will remain data-dependent, the market has responded positively, pricing in a high probability of rate cuts later this autumn. Bond yields have settled, and indices have rallied in response to the anticipation of cheaper borrowing costs.\n\nEconomists warning of potential lagged recessionary effects urge caution, suggesting that keeping interest rates higher for slightly too long is a safer option than cutting premature policy lines.',
-      source: 'Financial Times',
-      timeAgo: '12 mins ago',
-      imageUrl: 'featured_inflation',
-    ),
-    NewsArticle(
-      id: 'n1',
-      category: 'Market',
-      title: 'Semiconductor Rally Continues Amidst AI Supply Chain Breakthroughs',
-      snippet: 'Nvidia and AMD shares hit fresh record highs as major cloud providers boost capital expenditure budgets for next-gen data centers.',
-      content: 'Major technology companies have announced a significant increase in capital expenditure budgets for artificial intelligence infrastructure. Global semiconductor manufacturers are reporting record-high backlogs, signaling that demand for advanced graphics processors and accelerators shows no sign of slowing down.\n\nAnalysts at major institutions suggest that supply chain optimizations in East Asia have helped resolve bottlenecks that plagued the industry last year. However, pricing power remains strong, keeping profit margins elevated for key chip designs and fabrication firms.\n\nRetail traders have actively participated in this rally, though financial advisers warn of premium valuations and elevated volatility in tech portfolios.',
-      source: 'Bloomberg',
-      timeAgo: '45 mins ago',
-      imageUrl: 'semiconductor_rally',
-    ),
-    NewsArticle(
-      id: 'n2',
-      category: 'Regulatory',
-      title: 'SEC Updates Framework for Digital Asset Custody Requirements',
-      snippet: 'The Securities and Exchange Commission issued new guidance targeting institutional digital asset storage, creating stricter capital buffers.',
-      content: 'The Securities and Exchange Commission (SEC) has released an updated framework outlining stricter custody rules for broker-dealers and asset managers dealing with digital currencies and tokenized assets.\n\nUnder the new guidelines, institutional platforms must maintain higher liquidity buffers and verify digital asset reserves on a weekly basis through independent third-party audits. The move has sparked mixed reactions; consumer advocacy groups have lauded it as a shield against platform insolvencies, while industry coalitions argue that the regulatory overhead could stifle innovation and push firms offshore.\n\nFirms have been given six months to align their backend infrastructure with the new compliance regulations.',
-      source: 'Reuters',
-      timeAgo: '2 hrs ago',
-      imageUrl: 'sec_custody',
-    ),
-    NewsArticle(
-      id: 'n3',
-      category: 'Global',
-      title: 'European Energy Prices Diverge Following Renewables Surge',
-      snippet: 'Northern European markets record negative pricing during peak wind and solar production hours, driving grids to export excess electricity.',
-      content: 'Divergent weather patterns across Europe have resulted in unprecedented spreads in regional electricity rates. Strong winds in the North Sea and clear sunshine across Iberia led to record renewable output, pushing power prices below zero in several countries during midday hours.\n\nGrid operators were forced to offer negative pricing to balance power lines. Meanwhile, other countries with lower grid interconnection capacities relied on backup fossil fuel generators, keeping localized household rates high. This divergence highlights the pressing need for massive grid infrastructure upgrades and large-scale battery storage installations across the continent.',
-      source: 'Wall Street Journal',
-      timeAgo: '4 hrs ago',
-      imageUrl: 'european_energy',
-    ),
-    NewsArticle(
-      id: 'n4',
-      category: 'Taxes',
-      title: 'New Capital Gains Tax Rate Proposals Debated in Parliament',
-      snippet: 'Proposed amendments seek to adjust Short-Term Capital Gains (STCG) tax thresholds to close loopholes on high-frequency retail trades.',
-      content: 'A new tax bill proposed in the national legislature seeks to restructure the taxation of retail securities transactions. Under the proposed amendments, profits realized from asset sales held for less than 90 days would attract a premium surcharge, effectively creating a tiered short-term capital gains tax structure.\n\nProponents of the bill argue it will curb speculative day-trading volatility and incentivize long-term investments that support economic stability. Critics, however, state that higher transaction charges will reduce retail liquidity and penalize small-scale traders trying to leverage market volatility.\n\nThe debate is set to continue next week, with market associations lobbying for exceptions for standard index funds and retirement accounts.',
-      source: 'Financial Times',
-      timeAgo: '1 day ago',
-      imageUrl: 'taxation_news',
-    ),
-  ];
 
   @override
   State<NewsScreen> createState() => _NewsScreenState();
 }
 
 class _NewsScreenState extends State<NewsScreen> {
+  /// Currently selected category filter for the news feed.
   String _selectedCategory = 'All Stories';
-  final List<String> _categories = ['All Stories', 'Market', 'Global', 'Regulatory', 'Taxes'];
 
-  // Retrieve non-featured articles from global static list
-  late final List<NewsArticle> _articles = NewsScreen.allArticles
-      .where((a) => a.id != 'n_featured')
-      .toList();
+  /// List of filterable news categories.
+  final List<String> _categories = ['All Stories', 'Market', 'Global', 'Regulatory', 'Taxes'];
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final appState = Provider.of<AppStateProvider>(context);
+    final allArticles = appState.news;
 
-    // Filter articles
+    // Empty news state page
+    if (allArticles.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('StockLearn News', style: TextStyle(fontWeight: FontWeight.bold)),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.bookmarks_outlined),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const BookmarkedNewsScreen()),
+                );
+              },
+            ),
+            const SizedBox(width: 16),
+          ],
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2563EB).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.newspaper, size: 64, color: Color(0xFF2563EB)),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'No News Published Yet',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Check back later! The admin has not published any financial news or regulatory announcements yet.',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 14, height: 1.5),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    appState.loadApiData();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E3A8A),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.refresh, size: 20, color: Colors.white),
+                  label: const Text('Refresh Feed', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Identify the featured article (n_featured) or fallback to first
+    final featuredArticle = allArticles.firstWhere(
+      (a) => a.id == 'n_featured',
+      orElse: () => allArticles.first,
+    );
+
+    // List of non-featured articles
+    final otherArticles = allArticles.where((a) => a.id != featuredArticle.id).toList();
+
+    // Filter stories by category if not 'All Stories'
     final finalArticles = _selectedCategory == 'All Stories'
-        ? _articles
-        : _articles.where((a) => a.category.toLowerCase() == _selectedCategory.toLowerCase()).toList();
+        ? otherArticles
+        : otherArticles.where((a) => a.category.toLowerCase() == _selectedCategory.toLowerCase()).toList();
 
-    // Featured article for top card (Interest Rates)
-    final featuredArticle = NewsScreen.allArticles.firstWhere((a) => a.id == 'n_featured');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(

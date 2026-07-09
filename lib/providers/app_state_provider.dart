@@ -1,12 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/stock.dart';
 import '../models/transaction.dart';
 import '../models/course.dart';
+import '../models/lesson.dart';
 import '../models/top_up_log.dart';
+import '../models/news_article.dart';
+import '../services/api_service.dart';
 
 class AppStateProvider with ChangeNotifier {
   // Persistence Keys
@@ -29,6 +33,7 @@ class AppStateProvider with ChangeNotifier {
   List<StockTransaction> _transactions = [];
   List<TopUpLog> _topUpLogs = [];
   List<Course> _courses = [];
+  List<NewsArticle> _news = [];
   bool _isDarkMode = true; // Default Dark Mode as per premium aesthetic
   String _username = "Alexander Sterling";
   String _password = "password";
@@ -51,6 +56,7 @@ class AppStateProvider with ChangeNotifier {
   List<StockTransaction> get transactions => _transactions;
   List<TopUpLog> get topUpLogs => _topUpLogs;
   List<Course> get courses => _courses;
+  List<NewsArticle> get news => _news;
   bool get isDarkMode => _isDarkMode;
   String get username => _username;
   bool get isLoggedIn => _isLoggedIn;
@@ -133,10 +139,36 @@ class AppStateProvider with ChangeNotifier {
   // Initialize and load persisted data
   Future<void> _initData() async {
     _initializeMockStocks();
-    _initializeMockCourses();
     await _loadPersistedData();
     _recalculateHoldings();
     _startPriceSimulation();
+    await loadApiData();
+  }
+
+  /// Fetches courses and news from the API and maps persistence states to them.
+  Future<void> loadApiData() async {
+    final apiService = ApiService();
+
+    // 1. Fetch courses from the database API
+    final apiCourses = await apiService.fetchCourses();
+    _courses = apiCourses;
+    if (apiCourses.isNotEmpty) {
+      // Sync purchased status and lesson progress from local persistence
+      final prefs = await SharedPreferences.getInstance();
+      final purchasedCourseIds = prefs.getStringList(keyPurchasedCourses) ?? ['c1'];
+      for (var course in _courses) {
+        if (purchasedCourseIds.contains(course.id)) {
+          course.isPurchased = true;
+        }
+        final completedList = prefs.getStringList('${keyCourseProgress}_${course.id}') ?? [];
+        course.completedLessons.clear();
+        course.completedLessons.addAll(completedList);
+      }
+    }
+
+    // 2. Fetch news articles from the database API
+    _news = await apiService.fetchNews();
+    notifyListeners();
   }
 
   // Mock Stock Data Initialization
@@ -390,15 +422,15 @@ class AppStateProvider with ChangeNotifier {
         hours: 22.5,
         rating: 4.9,
         description: 'Evidence-based sessions designed for healthcare professionals and clinical mastery. Explore latest diagnostic oncology methodologies and precision therapies.',
-        lessons: [
-          'Course Overview & Introductions',
-          'Biomarkers in Early Detection',
-          'Next-Generation Sequencing Applications',
-          'Advanced Imaging and Radiogenomics',
-          'Case Studies: Solid Tumor Analysis',
-          'Liquid Biopsy in Treatment Response Tracking',
-          'Immuno-oncology Diagnostics',
-          'Clinical Decision Support System Integration',
+        lessons: const [
+          Lesson(title: 'Course Overview & Introductions', videoUrl: 'https://www.youtube.com/watch?v=17X2xH4XU6w'),
+          Lesson(title: 'Biomarkers in Early Detection', videoUrl: 'https://www.youtube.com/watch?v=kYJj1Lz_bmg'),
+          Lesson(title: 'Next-Generation Sequencing Applications', videoUrl: 'https://www.youtube.com/watch?v=qTj8KqR9N_M'),
+          Lesson(title: 'Advanced Imaging and Radiogenomics', videoUrl: 'https://www.youtube.com/watch?v=kYJj1Lz_bmg'),
+          Lesson(title: 'Case Studies: Solid Tumor Analysis', videoUrl: 'https://www.youtube.com/watch?v=17X2xH4XU6w'),
+          Lesson(title: 'Liquid Biopsy in Treatment Response Tracking', videoUrl: 'https://www.youtube.com/watch?v=qTj8KqR9N_M'),
+          Lesson(title: 'Immuno-oncology Diagnostics', videoUrl: 'https://www.youtube.com/watch?v=kYJj1Lz_bmg'),
+          Lesson(title: 'Clinical Decision Support System Integration', videoUrl: 'https://www.youtube.com/watch?v=17X2xH4XU6w'),
         ],
         coverImage: 'oncology_course',
       ),
@@ -411,15 +443,15 @@ class AppStateProvider with ChangeNotifier {
         hours: 12.0,
         rating: 4.8,
         description: 'Learn the fundamentals of stock market trading. Master candlestick charts, support & resistance, moving averages, and key risk management principles.',
-        lessons: [
-          'Introduction to Financial Markets',
-          'Understanding Order Types (Market, Limit)',
-          'Reading Candlestick Charts',
-          'Identifying Trends: Bullish vs Bearish',
-          'Support & Resistance Basics',
-          'Introduction to Moving Averages',
-          'Risk Management and Stop Loss',
-          'Creating Your First Simulated Trading Strategy',
+        lessons: const [
+          Lesson(title: 'Introduction to Financial Markets', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Understanding Order Types (Market, Limit)', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Reading Candlestick Charts', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Identifying Trends: Bullish vs Bearish', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Support & Resistance Basics', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Introduction to Moving Averages', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Risk Management and Stop Loss', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Creating Your First Simulated Trading Strategy', videoUrl: 'https://www.google.com'),
         ],
         coverImage: 'trading_course',
       ),
@@ -432,15 +464,15 @@ class AppStateProvider with ChangeNotifier {
         hours: 15.5,
         rating: 4.7,
         description: 'Align your mind, body, and breath. This course covers traditional Vinyasa sequences, breathing techniques (Pranayama), and meditation for stress relief.',
-        lessons: [
-          'Introduction to Vinyasa & Breath Sync',
-          'Sun Salutation (Surya Namaskar) A & B',
-          'Standing Poses and Core Balance',
-          'Hip Openers and Backbends',
-          'Advanced Inversions: Headstands & Arm Balances',
-          'Pranayama: Alternate Nostril Breathing',
-          'Yogic Sleep (Yoga Nidra) for Restoration',
-          'Daily 20-minute Flow Routine',
+        lessons: const [
+          Lesson(title: 'Introduction to Vinyasa & Breath Sync', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Sun Salutation (Surya Namaskar) A & B', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Standing Poses and Core Balance', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Hip Openers and Backbends', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Advanced Inversions: Headstands & Arm Balances', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Pranayama: Alternate Nostril Breathing', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Yogic Sleep (Yoga Nidra) for Restoration', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Daily 20-minute Flow Routine', videoUrl: 'https://www.google.com'),
         ],
         coverImage: 'yoga_course',
       ),
@@ -453,15 +485,15 @@ class AppStateProvider with ChangeNotifier {
         hours: 18.0,
         rating: 4.9,
         description: 'From absolute beginner to fingerstyle master. Learn fundamental chords, strumming patterns, music theory, and popular song playthroughs step-by-step.',
-        lessons: [
-          'Parts of the Guitar & Tuning Guide',
-          'Essential Open Chords (G, C, D, Em, Am)',
-          'Strumming Patterns & Rhythm Control',
-          'Understanding Bar Chords (F & B minor)',
-          'Introduction to Fingerstyle Picking',
-          'Reading Tablature & Music Theory Basics',
-          'Classic Song Walkthrough: Country/Rock',
-          'Improvised Soloing & Pentatonic Scale',
+        lessons: const [
+          Lesson(title: 'Parts of the Guitar & Tuning Guide', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Essential Open Chords (G, C, D, Em, Am)', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Strumming Patterns & Rhythm Control', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Understanding Bar Chords (F & B minor)', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Introduction to Fingerstyle Picking', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Reading Tablature & Music Theory Basics', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Classic Song Walkthrough: Country/Rock', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Improvised Soloing & Pentatonic Scale', videoUrl: 'https://www.google.com'),
         ],
         coverImage: 'music_course',
       ),
@@ -474,15 +506,15 @@ class AppStateProvider with ChangeNotifier {
         hours: 10.0,
         rating: 4.6,
         description: 'Learn popular street dance styles, grooves, and a complete high-energy routine. Designed for beginners who want to build rhythm and confidence.',
-        lessons: [
-          'Warm-up & Body Isolations',
-          'Basic Hip Hop Grooves: Bounce & Rock',
-          'Footwork Fundamentals (Running Man, Slides)',
-          'Arm styling and Hand-Eye Coordination',
-          'Combining Grooves and Footwork',
-          'Choreography Section Part 1',
-          'Choreography Section Part 2',
-          'Performance Styling, Musicality & Freestyle',
+        lessons: const [
+          Lesson(title: 'Warm-up & Body Isolations', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Basic Hip Hop Grooves: Bounce & Rock', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Footwork Fundamentals (Running Man, Slides)', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Arm styling and Hand-Eye Coordination', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Combining Grooves and Footwork', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Choreography Section Part 1', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Choreography Section Part 2', videoUrl: 'https://www.google.com'),
+          Lesson(title: 'Performance Styling, Musicality & Freestyle', videoUrl: 'https://www.google.com'),
         ],
         coverImage: 'dance_course',
       ),
@@ -867,12 +899,19 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Password Modification
-  bool updatePassword(String currentPassword, String newPassword) {
+  /// Updates the user's password both locally and in the database via API.
+  ///
+  /// Returns `true` if current password was correct and the server database
+  /// successfully committed the change.
+  Future<bool> updatePassword(String currentPassword, String newPassword) async {
     if (currentPassword == _password) {
-      _password = newPassword;
-      _saveUserProfile();
-      return true;
+      final success = await ApiService().updatePassword(currentPassword, newPassword);
+      if (success) {
+        _password = newPassword;
+        await _saveUserProfile();
+        notifyListeners();
+        return true;
+      }
     }
     return false;
   }
@@ -920,11 +959,27 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setProfilePicture(String path) async {
-    _profilePicturePath = path;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('profile_picture_path', _profilePicturePath);
-    notifyListeners();
+  /// Uploads and sets the user's profile picture.
+  ///
+  /// Converts the local image file at [localPath] to an optimal base64 JPEG
+  /// string, uploads it to the database API, and saves the resulting image
+  /// database reference (base64 or remote URL) in local state and persistence.
+  Future<void> setProfilePicture(String localPath) async {
+    try {
+      final bytes = await File(localPath).readAsBytes();
+      final base64Image = 'data:image/jpeg;base64,${base64.encode(bytes)}';
+
+      // Store in the database via ApiService
+      final resultPath = await ApiService().uploadProfilePicture(base64Image);
+      if (resultPath != null) {
+        _profilePicturePath = resultPath;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('profile_picture_path', _profilePicturePath);
+        notifyListeners();
+      }
+    } catch (e) {
+      print('[AppStateProvider] Error saving profile picture to database: $e');
+    }
   }
 
   int _classesTabIndex = 0;

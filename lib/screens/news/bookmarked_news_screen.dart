@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../providers/app_state_provider.dart';
-import 'news_screen.dart';
+import '../../models/news_article.dart';
 import 'news_detail_screen.dart';
 
+/// Screen displaying the list of news articles bookmarked by the user.
 class BookmarkedNewsScreen extends StatelessWidget {
+  /// Creates a [BookmarkedNewsScreen] widget.
   const BookmarkedNewsScreen({super.key});
 
   @override
@@ -13,8 +15,8 @@ class BookmarkedNewsScreen extends StatelessWidget {
     final appState = Provider.of<AppStateProvider>(context);
     final isDark = appState.isDarkMode;
 
-    // Filter to get only the bookmarked articles from all news articles
-    final bookmarkedArticles = NewsScreen.allArticles
+    // Filter to get only the bookmarked articles from the dynamic list loaded via API
+    final bookmarkedArticles = appState.news
         .where((article) => appState.bookmarkedNewsIds.contains(article.id))
         .toList();
 

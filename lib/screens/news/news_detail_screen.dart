@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state_provider.dart';
-import 'news_screen.dart';
+import '../../models/news_article.dart';
 import '../../utils/dialogs.dart';
 
+/// Screen showing the full content and details of a selected news article.
 class NewsDetailScreen extends StatelessWidget {
+  /// The news article to display.
   final NewsArticle article;
 
+  /// Creates a [NewsDetailScreen] widget.
   const NewsDetailScreen({super.key, required this.article});
 
   @override

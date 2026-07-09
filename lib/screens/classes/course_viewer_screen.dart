@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/app_state_provider.dart';
 import '../../models/course.dart';
 
+/// Screen allowing users to view course contents, launch video lessons, and track progress.
+///
+/// Integrates with [url_launcher] to open lesson video URLs as Chrome links in the default browser.
 class CourseViewerScreen extends StatefulWidget {
+  /// The course which the user is viewing.
   final Course course;
 
+  /// Creates a [CourseViewerScreen] widget.
   const CourseViewerScreen({super.key, required this.course});
 
   @override
@@ -13,47 +19,49 @@ class CourseViewerScreen extends StatefulWidget {
 }
 
 class _CourseViewerScreenState extends State<CourseViewerScreen> {
+  /// Index of the currently selected/active lesson.
   int _activeLessonIndex = 0;
-  bool _isPlaying = false;
-  double _playbackProgress = 0.0;
 
-  void _simulateVideoPlay() {
-    setState(() {
-      _isPlaying = !_isPlaying;
-      _playbackProgress = 0.0;
-    });
+  /// Launches the lesson video link in an external browser (e.g. Chrome).
+  ///
+  /// Automatically marks the lesson as completed upon launching the URL.
+  Future<void> _playVideoLesson(String title, String videoUrl) async {
+    if (videoUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No video link available for this lesson.')),
+      );
+      return;
+    }
 
-    if (_isPlaying) {
-      // Small simulated ticker
-      Future.doWhile(() async {
-        await Future.delayed(const Duration(milliseconds: 300));
-        if (!mounted || !_isPlaying) return false;
+    final uri = Uri.tryParse(videoUrl);
+    if (uri != null) {
+      try {
+        // Launch in external system browser (Chrome/Safari)
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+        // Auto-complete the lesson on successful launch
+        final appState = Provider.of<AppStateProvider>(context, listen: false);
+        final dynamicCourse = appState.courses.firstWhere((c) => c.id == widget.course.id);
         
-        setState(() {
-          _playbackProgress += 0.05;
-        });
-
-        if (_playbackProgress >= 1.0) {
-          setState(() {
-            _playbackProgress = 1.0;
-            _isPlaying = false;
-          });
-          
-          // Auto complete the lesson!
-          final appState = Provider.of<AppStateProvider>(context, listen: false);
-          final dynamicCourse = appState.courses.firstWhere((c) => c.id == widget.course.id);
-          final activeLesson = dynamicCourse.lessons[_activeLessonIndex];
-          
-          if (!dynamicCourse.completedLessons.contains(activeLesson)) {
-            appState.toggleLessonCompletion(dynamicCourse, activeLesson);
+        if (!dynamicCourse.completedLessons.contains(title)) {
+          await appState.toggleLessonCompletion(dynamicCourse, title);
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Completed Lesson: "$activeLesson"')),
+              SnackBar(
+                content: Text('Lesson "$title" marked as completed!'),
+                backgroundColor: const Color(0xFF10B981),
+              ),
             );
           }
-          return false;
         }
-        return true;
-      });
+      } catch (e) {
+        print('[CourseViewerScreen] Could not launch URL: $videoUrl. Error: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open lesson link: $e')),
+          );
+        }
+      }
     }
   }
 
@@ -66,7 +74,9 @@ class _CourseViewerScreenState extends State<CourseViewerScreen> {
     );
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final activeLessonTitle = dynamicCourse.lessons[_activeLessonIndex];
+    final activeLesson = dynamicCourse.lessons.isNotEmpty
+        ? dynamicCourse.lessons[_activeLessonIndex]
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -75,8 +85,8 @@ class _CourseViewerScreenState extends State<CourseViewerScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Simulated Video Player Box
-            _buildVideoPlayerBox(activeLessonTitle, isDark),
+            // 1. Simulated/Link Video Player Info Box
+            _buildVideoHeaderBox(activeLesson, isDark),
 
             // 2. Course Title and Progress Header
             Padding(
@@ -113,73 +123,71 @@ class _CourseViewerScreenState extends State<CourseViewerScreen> {
 
             const Divider(),
 
-            // 3. Lessons List with check boxes
+            // 3. Curriculum Lessons list with check boxes
             Expanded(
-              child: ListView.separated(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: dynamicCourse.lessons.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  final lesson = dynamicCourse.lessons[index];
-                  final isCompleted = dynamicCourse.completedLessons.contains(lesson);
-                  final isActive = _activeLessonIndex == index;
+              child: dynamicCourse.lessons.isEmpty
+                  ? const Center(child: Text('No lessons in this course.'))
+                  : ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      itemCount: dynamicCourse.lessons.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final lessonObj = dynamicCourse.lessons[index];
+                        final isCompleted = dynamicCourse.completedLessons.contains(lessonObj.title);
+                        final isActive = _activeLessonIndex == index;
 
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? const Color(0xFF2563EB).withOpacity(0.06)
-                          : (isDark ? const Color(0xFF151D30) : Colors.white),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isActive
-                            ? const Color(0xFF2563EB)
-                            : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
-                        width: isActive ? 1.5 : 1.0,
-                      ),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-                      leading: Checkbox(
-                        value: isCompleted,
-                        activeColor: const Color(0xFF10B981),
-                        onChanged: (val) {
-                          appState.toggleLessonCompletion(dynamicCourse, lesson);
-                        },
-                      ),
-                      title: Text(
-                        lesson,
-                        style: TextStyle(
-                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                          fontSize: 13,
-                        ),
-                      ),
-                      trailing: IconButton(
-                        icon: Icon(
-                          isActive && _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_outline,
-                          color: isActive ? const Color(0xFF2563EB) : Colors.grey,
-                          size: 24,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _activeLessonIndex = index;
-                            _isPlaying = false;
-                            _playbackProgress = 0.0;
-                          });
-                          _simulateVideoPlay();
-                        },
-                      ),
-                      onTap: () {
-                        setState(() {
-                          _activeLessonIndex = index;
-                          _isPlaying = false;
-                          _playbackProgress = 0.0;
-                        });
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? const Color(0xFF2563EB).withOpacity(0.06)
+                                : (isDark ? const Color(0xFF151D30) : Colors.white),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isActive
+                                  ? const Color(0xFF2563EB)
+                                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+                              width: isActive ? 1.5 : 1.0,
+                            ),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                            leading: Checkbox(
+                              value: isCompleted,
+                              activeColor: const Color(0xFF10B981),
+                              onChanged: (val) {
+                                appState.toggleLessonCompletion(dynamicCourse, lessonObj.title);
+                              },
+                            ),
+                            title: Text(
+                              lessonObj.title,
+                              style: TextStyle(
+                                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                                fontSize: 13,
+                              ),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(
+                                Icons.open_in_browser,
+                                color: Color(0xFF2563EB),
+                                size: 24,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _activeLessonIndex = index;
+                                });
+                                _playVideoLesson(lessonObj.title, lessonObj.videoUrl);
+                              },
+                            ),
+                            onTap: () {
+                              setState(() {
+                                _activeLessonIndex = index;
+                              });
+                            },
+                          ),
+                        );
                       },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
@@ -187,72 +195,73 @@ class _CourseViewerScreenState extends State<CourseViewerScreen> {
     );
   }
 
-  // Video box simulator
-  Widget _buildVideoPlayerBox(String activeLesson, bool isDark) {
+  /// Builds the information box displaying details about the currently selected lesson.
+  Widget _buildVideoHeaderBox(dynamic activeLesson, bool isDark) {
+    if (activeLesson == null) {
+      return Container(
+        height: 200,
+        width: double.infinity,
+        color: Colors.black87,
+        child: const Center(child: Text('No lesson active', style: TextStyle(color: Colors.white))),
+      );
+    }
+
     return Container(
       height: 200,
       width: double.infinity,
       color: Colors.black87,
       child: Stack(
         children: [
-          // Background graphic
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.school, size: 48, color: Colors.white24),
-                const SizedBox(height: 10),
+                const Icon(Icons.chrome_reader_mode, size: 48, color: Colors.white54),
+                const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Text(
-                    activeLesson,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    activeLesson.title,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                     textAlign: TextAlign.center,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _isPlaying ? 'Simulating Playback...' : 'Video Paused',
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                const SizedBox(height: 8),
+                const Text(
+                  'Click the browser icon to watch lesson video',
+                  style: TextStyle(color: Colors.grey, fontSize: 11),
                 ),
               ],
             ),
           ),
-          // Playback progress indicator at the bottom
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: Column(
-              children: [
-                LinearProgressIndicator(
-                  value: _playbackProgress,
-                  minHeight: 4,
-                  backgroundColor: Colors.white24,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  color: Colors.black,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 20),
-                        onPressed: _simulateVideoPlay,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                      Text(
-                        _isPlaying
-                            ? '${(_playbackProgress * 100).toStringAsFixed(0)}%'
-                            : '00:00 / 10:00',
-                        style: const TextStyle(color: Colors.white, fontSize: 10),
-                      ),
-                    ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              color: Colors.black,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _playVideoLesson(activeLesson.title, activeLesson.videoUrl),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2563EB),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    icon: const Icon(Icons.play_arrow, size: 16),
+                    label: const Text('Watch Video', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
-                ),
-              ],
+                  const Text(
+                    'Chrome Video Link',
+                    style: TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

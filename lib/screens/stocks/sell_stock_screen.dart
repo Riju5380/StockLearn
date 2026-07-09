@@ -3,9 +3,15 @@ import 'package:provider/provider.dart';
 import '../../providers/app_state_provider.dart';
 import '../../models/stock.dart';
 
+/// Screen that allows users to place simulated sell orders for stocks.
+///
+/// Displays user holdings, calculates projected profit/loss,
+/// and processes simulated virtual stock sale transactions.
 class SellStockScreen extends StatefulWidget {
+  /// The stock which the user wants to sell.
   final Stock stock;
 
+  /// Creates a [SellStockScreen] widget.
   const SellStockScreen({super.key, required this.stock});
 
   @override
@@ -93,6 +99,10 @@ class _SellStockScreenState extends State<SellStockScreen> {
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.all(16.0),
                   children: [
+                    // Under Development / Simulation Alert
+                    _buildWarningBanner(isDark),
+                    const SizedBox(height: 16),
+
                     // 1. Stock Title Info Header
                     _buildStockHeaderCard(dynamicStock, isDark),
                     const SizedBox(height: 16),
@@ -389,42 +399,8 @@ class _SellStockScreenState extends State<SellStockScreen> {
       onPressed = null;
       label = 'Insufficient Shares';
     } else {
-      onPressed = () async {
-        final success = await appState.sellStock(stock, sellShares);
-        if (!mounted) return;
-        if (success) {
-          // Calculate display text in appropriate currency
-          double totalProceeds = marketValueOriginal;
-          String proceedsStr = isUsStock ? '\$${totalProceeds.toStringAsFixed(2)}' : '₹${totalProceeds.toStringAsFixed(2)}';
-          
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (ctx) => AlertDialog(
-              title: const Row(
-                children: [
-                  Icon(Icons.check_circle, color: Color(0xFF10B981)),
-                  SizedBox(width: 8),
-                  Text('Order Executed'),
-                ],
-              ),
-              content: Text('Successfully sold ${sellShares.toStringAsFixed(sellShares == sellShares.toInt() ? 0 : 2)} shares of ${stock.symbol} for a total of $proceedsStr.'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Transaction failed. Please try again.')),
-          );
-        }
+      onPressed = () {
+        _showDevelopmentNotice(context);
       };
     }
 
@@ -444,6 +420,87 @@ class _SellStockScreenState extends State<SellStockScreen> {
         ),
         icon: const Icon(Icons.sell_outlined),
         label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      ),
+    );
+  }
+
+  /// Builds a modern warning banner indicating this is a simulated trade.
+  Widget _buildWarningBanner(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(14.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEF4444).withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFEF4444).withOpacity(0.2),
+          width: 1.0,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Simulation Environment Only',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Color(0xFFEF4444),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'This feature is currently under development. Trades executed here use virtual money and do not involve real stocks or actual currency transactions.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    height: 1.4,
+                    color: isDark ? Colors.grey[400] : Colors.grey[700],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Displays a polished alert dialog informing the user that live stock trading is under development.
+  void _showDevelopmentNotice(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.lock_outline, color: Color(0xFFF59E0B)),
+            SizedBox(width: 10),
+            Text('Feature Unavailable', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'Live stock selling is currently under active development for our production release.\n\nThis app is currently in view-only learning mode. Placing real-world or simulated trades is disabled at this time.',
+          style: TextStyle(height: 1.4),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context); // Go back to details
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E3A8A),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Understood', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

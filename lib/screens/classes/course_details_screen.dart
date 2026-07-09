@@ -4,15 +4,18 @@ import '../../providers/app_state_provider.dart';
 import '../../models/course.dart';
 import 'course_viewer_screen.dart';
 
+/// Screen displaying details of a specific course, allowing users to unlock it or launch classroom.
 class CourseDetailsScreen extends StatelessWidget {
+  /// The course details to be shown.
   final Course course;
 
+  /// Creates a [CourseDetailsScreen] widget.
   const CourseDetailsScreen({super.key, required this.course});
 
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppStateProvider>(context);
-    // Dynamic course tracker
+    // Dynamic course tracker to monitor updates from AppStateProvider
     final dynamicCourse = appState.courses.firstWhere(
       (c) => c.id == course.id,
       orElse: () => course,
@@ -93,6 +96,7 @@ class CourseDetailsScreen extends StatelessWidget {
                     itemCount: dynamicCourse.lessons.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
+                      final lessonObj = dynamicCourse.lessons[index];
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
@@ -110,7 +114,7 @@ class CourseDetailsScreen extends StatelessWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                dynamicCourse.lessons[index],
+                                lessonObj.title,
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                               ),
                             ),

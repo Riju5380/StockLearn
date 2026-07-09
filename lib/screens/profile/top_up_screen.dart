@@ -3,7 +3,12 @@ import 'package:provider/provider.dart';
 import '../../providers/app_state_provider.dart';
 import '../../models/top_up_log.dart';
 
+/// Screen that simulates virtual wallet top-ups.
+///
+/// Allows the user to pick preset or custom amounts to top up their virtual
+/// wallet balance, showing a simulated transaction cost.
 class TopUpScreen extends StatefulWidget {
+  /// Creates a [TopUpScreen] widget.
   const TopUpScreen({super.key});
 
   @override
@@ -58,6 +63,10 @@ class _TopUpScreenState extends State<TopUpScreen> {
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.all(16),
                 children: [
+                  // Under Development / Simulation Alert Notice
+                  _buildWarningBanner(isDark),
+                  const SizedBox(height: 16),
+
                   // 1. Current Wallet Status Card
                   _buildBalanceCard(appState, isDark),
                   const SizedBox(height: 20),
@@ -363,38 +372,9 @@ class _TopUpScreenState extends State<TopUpScreen> {
             'Simulated Method: $_selectedMethod',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
           ),
-          const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () {
-              // Complete Top Up
-              appState.topUpWallet(_amount, charge, _selectedMethod);
-              
-              // Pop bottom sheet
-              Navigator.pop(context);
-              
-              // Show Success
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Color(0xFF10B981)),
-                      SizedBox(width: 8),
-                      Text('Top Up Success!'),
-                    ],
-                  ),
-                  content: Text('Successfully added ₹${_amount.toStringAsFixed(0)} virtual balance.\n(Charged ₹${charge.toStringAsFixed(2)} real balance)'),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        Navigator.pop(context); // back to profile
-                      },
-                      child: const Text('Done'),
-                    ),
-                  ],
-                ),
-              );
+              _showDevelopmentNotice(context);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF10B981),
@@ -417,6 +397,87 @@ class _TopUpScreenState extends State<TopUpScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Cancel Payment'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds a modern warning banner indicating this is a simulated payment/top-up.
+  Widget _buildWarningBanner(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(14.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEF4444).withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFEF4444).withOpacity(0.2),
+          width: 1.0,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Simulation Environment Only',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Color(0xFFEF4444),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Payment and top-up features are under active development. No real money or charges are processed during this simulated flow.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    height: 1.4,
+                    color: isDark ? Colors.grey[400] : Colors.grey[700],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Displays a polished alert dialog informing the user that wallet top-up is under development.
+  void _showDevelopmentNotice(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.lock_outline, color: Color(0xFFF59E0B)),
+            SizedBox(width: 10),
+            Text('Feature Unavailable', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'Wallet top-up is currently under active development for our production release.\n\nThis app is currently in view-only learning mode. Adding real or virtual currency is disabled at this time.',
+          style: TextStyle(height: 1.4),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context); // close bottom sheet/modal
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E3A8A),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Understood', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
