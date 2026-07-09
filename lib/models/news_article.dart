@@ -39,15 +39,48 @@ class NewsArticle {
 
   /// Factory constructor to parse a [NewsArticle] from a JSON map.
   factory NewsArticle.fromJson(Map<String, dynamic> json) {
+    final idVal = json['id'];
+    final idStr = idVal?.toString() ?? '';
+
+    String categoryName = 'General';
+    if (json['category'] != null) {
+      if (json['category'] is Map) {
+        categoryName = json['category']['name'] as String? ?? 'General';
+      } else if (json['category'] is String) {
+        categoryName = json['category'] as String;
+      }
+    }
+
+    String timeAgoStr = 'Recently';
+    if (json['published_at'] != null) {
+      try {
+        final parsedTime = DateTime.parse(json['published_at'] as String);
+        final diff = DateTime.now().difference(parsedTime);
+        if (diff.inDays > 0) {
+          timeAgoStr = '${diff.inDays}d ago';
+        } else if (diff.inHours > 0) {
+          timeAgoStr = '${diff.inHours}h ago';
+        } else if (diff.inMinutes > 0) {
+          timeAgoStr = '${diff.inMinutes}m ago';
+        } else {
+          timeAgoStr = 'Just now';
+        }
+      } catch (_) {
+        timeAgoStr = 'Recently';
+      }
+    } else if (json['timeAgo'] != null) {
+      timeAgoStr = json['timeAgo'] as String;
+    }
+
     return NewsArticle(
-      id: json['id'] as String? ?? '',
-      category: json['category'] as String? ?? 'General',
+      id: idStr,
+      category: categoryName,
       title: json['title'] as String? ?? '',
-      snippet: json['snippet'] as String? ?? '',
+      snippet: json['summary'] as String? ?? json['snippet'] as String? ?? '',
       content: json['content'] as String? ?? '',
-      source: json['source'] as String? ?? 'Unknown',
-      timeAgo: json['timeAgo'] as String? ?? 'Recently',
-      imageUrl: json['imageUrl'] as String? ?? '',
+      source: json['source_name'] as String? ?? json['source'] as String? ?? 'Unknown',
+      timeAgo: timeAgoStr,
+      imageUrl: json['featured_image'] as String? ?? json['imageUrl'] as String? ?? '',
     );
   }
 

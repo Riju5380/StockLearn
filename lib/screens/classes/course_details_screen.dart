@@ -5,7 +5,7 @@ import '../../models/course.dart';
 import 'course_viewer_screen.dart';
 
 /// Screen displaying details of a specific course, allowing users to unlock it or launch classroom.
-class CourseDetailsScreen extends StatelessWidget {
+class CourseDetailsScreen extends StatefulWidget {
   /// The course details to be shown.
   final Course course;
 
@@ -13,12 +13,40 @@ class CourseDetailsScreen extends StatelessWidget {
   const CourseDetailsScreen({super.key, required this.course});
 
   @override
+  State<CourseDetailsScreen> createState() => _CourseDetailsScreenState();
+}
+
+class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
+  bool _isFetchingCurriculum = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.course.slug.isNotEmpty) {
+      _fetchCurriculum();
+    }
+  }
+
+  Future<void> _fetchCurriculum() async {
+    setState(() {
+      _isFetchingCurriculum = true;
+    });
+    final appState = Provider.of<AppStateProvider>(context, listen: false);
+    await appState.fetchAndSyncCourseDetails(widget.course.slug);
+    if (mounted) {
+      setState(() {
+        _isFetchingCurriculum = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppStateProvider>(context);
     // Dynamic course tracker to monitor updates from AppStateProvider
     final dynamicCourse = appState.courses.firstWhere(
-      (c) => c.id == course.id,
-      orElse: () => course,
+      (c) => c.id == widget.course.id,
+      orElse: () => widget.course,
     );
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -90,39 +118,55 @@ class CourseDetailsScreen extends StatelessWidget {
                   // Curriculum Lessons list
                   Text('Curriculum', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 12),
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: dynamicCourse.lessons.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final lessonObj = dynamicCourse.lessons[index];
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF151D30) : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 12,
-                              backgroundColor: const Color(0xFF2563EB).withOpacity(0.1),
-                              child: Text('${index + 1}', style: const TextStyle(fontSize: 11, color: Color(0xFF2563EB), fontWeight: FontWeight.bold)),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                lessonObj.title,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  if (_isFetchingCurriculum && dynamicCourse.lessons.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24.0),
+                      child: Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (dynamicCourse.lessons.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      child: Text(
+                        'No lessons available in curriculum.',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: dynamicCourse.lessons.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final lessonObj = dynamicCourse.lessons[index];
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF151D30) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 12,
+                                backgroundColor: const Color(0xFF2563EB).withOpacity(0.1),
+                                child: Text('${index + 1}', style: const TextStyle(fontSize: 11, color: Color(0xFF2563EB), fontWeight: FontWeight.bold)),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  lessonObj.title,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   const SizedBox(height: 20),
                 ],
               ),

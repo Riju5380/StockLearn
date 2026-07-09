@@ -23,7 +23,7 @@ class Lesson {
   factory Lesson.fromJson(Map<String, dynamic> json) {
     return Lesson(
       title: json['title'] as String? ?? 'Untitled Lesson',
-      videoUrl: json['videoUrl'] as String? ?? '',
+      videoUrl: json['videoUrl'] as String? ?? json['video_url'] as String? ?? '',
     );
   }
 

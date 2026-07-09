@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../providers/app_state_provider.dart';
 import '../widgets/logo_widget.dart';
 import 'main_layout.dart';
+import 'register_screen.dart';
 
+/// Screen handles authentication (sign in) for existing accounts.
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -12,39 +14,51 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  final _usernameController = TextEditingController(text: 'Alexander Sterling');
-  final _passwordController = TextEditingController(text: 'password');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
   String? _errorMessage;
 
-  void _handleLogin() {
-    final username = _usernameController.text;
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (username.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       setState(() {
         _errorMessage = "Please enter both fields.";
       });
       return;
     }
 
-    final appState = Provider.of<AppStateProvider>(context, listen: false);
-    appState.loginUser(username, password);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    if (appState.isLoggedIn) {
+    final appState = Provider.of<AppStateProvider>(context, listen: false);
+    final result = await appState.loginApiUser(email, password);
+    
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (result['success'] == true) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const MainLayout()),
       );
     } else {
       setState(() {
-        _errorMessage = "Invalid credentials. Hint: use 'password'";
+        _errorMessage = result['message'] ?? 'Invalid credentials.';
       });
     }
   }
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -77,13 +91,14 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 const SizedBox(height: 32),
                 
-                // Username Field
+                // Email Field
                 TextField(
-                  controller: _usernameController,
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    labelText: 'Username or Email',
-                    hintText: 'Enter your name',
-                    prefixIcon: const Icon(Icons.person_outline),
+                    labelText: 'Email Address',
+                    hintText: 'Enter your account email',
+                    prefixIcon: const Icon(Icons.email_outlined),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -133,8 +148,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       showDialog(
                         context: context,
                         builder: (_) => AlertDialog(
-                          title: const Text('Password Hint'),
-                          content: const Text('The simulated password is "password" (all lowercase).'),
+                          title: const Text('Reset Password'),
+                          content: const Text('To reset your password, please contact the administrator or support at support@stocklearn.com.'),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
@@ -151,7 +166,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
                 // Login Button
                 ElevatedButton(
-                  onPressed: _handleLogin,
+                  onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF10B981), // Emerald green
                     foregroundColor: Colors.white,
@@ -160,33 +175,42 @@ class _AuthScreenState extends State<AuthScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Sign In',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Sign In',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                 ),
                 const SizedBox(height: 24),
 
-                // Demo Quick Start
-                OutlinedButton(
-                  onPressed: () {
-                    final appState = Provider.of<AppStateProvider>(context, listen: false);
-                    appState.loginUser('Alexander Sterling', 'password');
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const MainLayout()),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: BorderSide(color: isDark ? Colors.white30 : Colors.black26),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                // Switch to Register Screen
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Don't have an account?",
+                      style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
                     ),
-                  ),
-                  child: const Text(
-                    'Quick Start as Guest',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                        );
+                      },
+                      child: const Text(
+                        'Sign Up',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

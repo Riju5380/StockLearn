@@ -28,19 +28,20 @@ class AppStateProvider with ChangeNotifier {
   static const double usdToInr = 83.50;
 
   // Local State
-  double _walletBalance = 100000.00; // Default ₹1,00,000.00
+  double _walletBalance = 0.00; // Default ₹0.00 until authenticated
   List<Stock> _stocks = [];
   List<StockTransaction> _transactions = [];
   List<TopUpLog> _topUpLogs = [];
   List<Course> _courses = [];
   List<NewsArticle> _news = [];
   bool _isDarkMode = true; // Default Dark Mode as per premium aesthetic
-  String _username = "Alexander Sterling";
-  String _password = "password";
-  bool _isLoggedIn = true;
+  String _username = "";
+  String _password = "";
+  bool _isLoggedIn = false;
   int _navigationIndex = 0;
   List<String> _bookmarkedNewsIds = [];
   String _profilePicturePath = '';
+  String? _authToken;
 
   // Holdings Helper
   // Map of Symbol -> Shares owned
@@ -63,6 +64,7 @@ class AppStateProvider with ChangeNotifier {
   int get navigationIndex => _navigationIndex;
   List<String> get bookmarkedNewsIds => _bookmarkedNewsIds;
   String get profilePicturePath => _profilePicturePath;
+  String get authToken => _authToken ?? '';
 
   Map<String, double> get holdings => _holdings;
   Map<String, double> get avgPurchasePrices => _avgPurchasePrices;
@@ -169,6 +171,27 @@ class AppStateProvider with ChangeNotifier {
     // 2. Fetch news articles from the database API
     _news = await apiService.fetchNews();
     notifyListeners();
+  }
+
+  /// Fetches detailed course information (including modules/lessons curriculum)
+  /// and updates the course list entry.
+  Future<void> fetchAndSyncCourseDetails(String slug) async {
+    if (slug.isEmpty) return;
+    final detailedCourse = await ApiService().fetchCourseDetails(slug);
+    if (detailedCourse != null) {
+      final index = _courses.indexWhere(
+        (c) => c.id == detailedCourse.id || c.title.toLowerCase() == detailedCourse.title.toLowerCase(),
+      );
+      if (index != -1) {
+        // Sync API modules to lessons list
+        // Preserve isPurchased status and local lesson progress
+        detailedCourse.isPurchased = _courses[index].isPurchased;
+        detailedCourse.completedLessons.clear();
+        detailedCourse.completedLessons.addAll(_courses[index].completedLessons);
+        _courses[index] = detailedCourse;
+        notifyListeners();
+      }
+    }
   }
 
   // Mock Stock Data Initialization
@@ -526,20 +549,21 @@ class AppStateProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
 
     // 1. Balance
-    _walletBalance = prefs.getDouble(keyWalletBalance) ?? 100000.00;
+    _walletBalance = prefs.getDouble(keyWalletBalance) ?? 0.00;
 
     // 2. Dark Mode
     _isDarkMode = prefs.getBool(keyDarkMode) ?? true;
 
     // 3. User Details
-    _username = prefs.getString(keyUsername) ?? "Alexander Sterling";
-    _password = prefs.getString(keyPassword) ?? "password";
+    _username = prefs.getString(keyUsername) ?? "";
+    _password = prefs.getString(keyPassword) ?? "";
 
     // Bookmarks & Profile Picture
     _bookmarkedNewsIds = prefs.getStringList('bookmarked_news_ids') ?? [];
     _profilePicturePath = prefs.getString('profile_picture_path') ?? '';
     _navigationIndex = prefs.getInt('navigation_index') ?? 0;
-    _isLoggedIn = prefs.getBool('is_logged_in') ?? true;
+    _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+    _authToken = prefs.getString('auth_token');
 
     // 4. Wishlist
     final wishlistSymbols = prefs.getStringList(keyWishlist) ?? ['AAPL', 'GOOGL'];
@@ -904,9 +928,16 @@ class AppStateProvider with ChangeNotifier {
   /// Returns `true` if current password was correct and the server database
   /// successfully committed the change.
   Future<bool> updatePassword(String currentPassword, String newPassword) async {
-    if (currentPassword == _password) {
-      final success = await ApiService().updatePassword(currentPassword, newPassword);
+    if (_authToken != null && _authToken!.isNotEmpty) {
+      final success = await ApiService().changePassword(_authToken!, currentPassword, newPassword);
       if (success) {
+        _password = newPassword;
+        await _saveUserProfile();
+        notifyListeners();
+        return true;
+      }
+    } else {
+      if (currentPassword == _password) {
         _password = newPassword;
         await _saveUserProfile();
         notifyListeners();
@@ -923,21 +954,108 @@ class AppStateProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Login / Logout Simulation
+  // Login / Logout Simulation & API Integration
   Future<void> loginUser(String user, String pass) async {
     if (user.trim().isNotEmpty && pass == _password) {
       _username = user;
       _isLoggedIn = true;
+      _authToken = null;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_logged_in', true);
+      await prefs.remove('auth_token');
       notifyListeners();
     }
   }
 
+  Future<Map<String, dynamic>> loginApiUser(String email, String password) async {
+    final result = await ApiService().login(email, password);
+    if (result != null && result['success'] == true) {
+      _authToken = result['token'] as String?;
+      final user = result['user'] as Map<String, dynamic>?;
+      if (user != null) {
+        _username = user['username'] as String? ?? user['email'] as String? ?? '';
+        final balanceVal = user['wallet_balance'];
+        if (balanceVal != null) {
+          if (balanceVal is num) {
+            _walletBalance = balanceVal.toDouble();
+          } else if (balanceVal is String) {
+            _walletBalance = double.tryParse(balanceVal) ?? 0.0;
+          }
+        }
+        _profilePicturePath = user['profile_image'] as String? ?? '';
+      }
+      _isLoggedIn = true;
+      _password = password;
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', _authToken ?? '');
+      await prefs.setBool('is_logged_in', true);
+      await prefs.setDouble(keyWalletBalance, _walletBalance);
+      await prefs.setString(keyUsername, _username);
+      await prefs.setString('profile_picture_path', _profilePicturePath);
+      await prefs.setString(keyPassword, _password);
+      
+      notifyListeners();
+      return {'success': true, 'message': result['message'] ?? 'Login successful.'};
+    } else {
+      return {'success': false, 'message': result?['message'] ?? 'Invalid credentials.'};
+    }
+  }
+
+  Future<Map<String, dynamic>> registerApiUser(String username, String email, String password) async {
+    final result = await ApiService().register(username, email, password);
+    if (result != null && result['success'] == true) {
+      _authToken = result['token'] as String?;
+      final user = result['user'] as Map<String, dynamic>?;
+      if (user != null) {
+        _username = user['username'] as String? ?? user['email'] as String? ?? '';
+        final balanceVal = user['wallet_balance'];
+        if (balanceVal != null) {
+          if (balanceVal is num) {
+            _walletBalance = balanceVal.toDouble();
+          } else if (balanceVal is String) {
+            _walletBalance = double.tryParse(balanceVal) ?? 0.0;
+          }
+        }
+        _profilePicturePath = user['profile_image'] as String? ?? '';
+      }
+      _isLoggedIn = true;
+      _password = password;
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', _authToken ?? '');
+      await prefs.setBool('is_logged_in', true);
+      await prefs.setDouble(keyWalletBalance, _walletBalance);
+      await prefs.setString(keyUsername, _username);
+      await prefs.setString('profile_picture_path', _profilePicturePath);
+      await prefs.setString(keyPassword, _password);
+      
+      notifyListeners();
+      return {'success': true, 'message': result['message'] ?? 'Registration successful.'};
+    } else {
+      String message = result?['message'] ?? 'Registration failed.';
+      if (result?['errors'] != null) {
+        final errors = result?['errors'];
+        if (errors is Map) {
+          final firstErrorList = errors.values.first;
+          if (firstErrorList is List && firstErrorList.isNotEmpty) {
+            message = firstErrorList.first.toString();
+          }
+        }
+      }
+      return {'success': false, 'message': message};
+    }
+  }
+
   Future<void> logoutUser() async {
+    if (_authToken != null && _authToken!.isNotEmpty) {
+      await ApiService().logout(_authToken!);
+    }
+    _authToken = null;
     _isLoggedIn = false;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_logged_in', false);
+    await prefs.remove('auth_token');
     notifyListeners();
   }
 
