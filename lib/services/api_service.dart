@@ -8,8 +8,7 @@ import '../models/news_article.dart';
 /// Service class handling API communication with the Admin Panel Backend.
 ///
 /// It provides methods to fetch courses, news articles, authenticate, update password, and
-/// upload profile pictures. Features a robust fallback system using mock data
-/// when the server is offline.
+/// upload profile pictures.
 class ApiService {
   /// Base URL of the Admin Panel API.
   ///
@@ -18,13 +17,12 @@ class ApiService {
   /// - Physical Device: Change the host IP below to your Mac's IP (e.g. '192.168.0.102').
   static String get baseUrl {
     // Set this to true if you are testing on a physical mobile device:
-    const bool isPhysicalDevice = false; 
-    const String computerIp = '192.168.0.198'; // Your Mac's local network IP
+    const bool isPhysicalDevice = true;
+    const String computerIp = '172.25.136.43'; // Your Mac's local network IP
 
     if (isPhysicalDevice) {
       return 'http://$computerIp:8000/api';
     }
-
     if (kIsWeb) {
       return 'http://localhost:8000/api';
     }
@@ -301,7 +299,6 @@ class ApiService {
       print(
         '[ApiService] Profile avatar upload failed: $e. Falling back to local base64 storage.',
       );
-      // If server is offline, return the base64 string directly so it can be rendered locally.
       return base64Image;
     }
   }

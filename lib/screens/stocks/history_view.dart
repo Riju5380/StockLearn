@@ -122,7 +122,7 @@ class _HistoryViewState extends State<HistoryView> {
       String bestSymbol,
       bool isDark) {
     
-    Widget metricBox(String label, String value, IconData icon, Color color, [String? subText]) {
+    Widget metricBox(String label, String value, FaIconData icon, Color color, [String? subText]) {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(

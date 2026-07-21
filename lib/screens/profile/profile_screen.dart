@@ -196,7 +196,7 @@ class ProfileScreen extends StatelessWidget {
 
   // Preferences lists matching screenshots
   Widget _buildPreferencesList(BuildContext context, AppStateProvider appState, bool isDark) {
-    Widget prefRow(IconData icon, Color color, String title, String subtitle, Widget trailing) {
+    Widget prefRow(FaIconData icon, Color color, String title, String subtitle, Widget trailing) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(

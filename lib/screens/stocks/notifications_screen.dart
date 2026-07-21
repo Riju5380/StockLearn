@@ -127,7 +127,7 @@ class NotificationsScreen extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: FaIcon(
-                          notification['icon'] as IconData,
+                          notification['icon'] as FaIconData,
                           size: 18,
                           color: notification['color'] as Color,
                         ),

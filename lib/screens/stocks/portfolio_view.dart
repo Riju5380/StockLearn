@@ -349,7 +349,7 @@ class PortfolioView extends StatelessWidget {
 
   // Health Scorecards matching screenshots
   Widget _buildHealthGrid(BuildContext context, bool isDark) {
-    Widget healthCard(String label, String value, IconData icon, Color color) {
+    Widget healthCard(String label, String value, FaIconData icon, Color color) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(

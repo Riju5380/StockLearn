@@ -216,7 +216,7 @@ class DashboardView extends StatelessWidget {
     final appState = Provider.of<AppStateProvider>(context, listen: false);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    Widget actionCard(String label, IconData icon, Color color, VoidCallback onTap) {
+    Widget actionCard(String label, FaIconData icon, Color color, VoidCallback onTap) {
       return InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
