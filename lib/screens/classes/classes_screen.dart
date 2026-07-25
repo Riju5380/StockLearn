@@ -33,8 +33,6 @@ class _ClassesScreenState extends State<ClassesScreen> with SingleTickerProvider
   /// Selected category filter (defaults to 'All').
   String _selectedCategory = 'All';
 
-  /// List of available categories for filter chips.
-  final List<String> _categories = ['All', 'Trading', 'Yoga', 'Music', 'Dance'];
 
   @override
   void initState() {
@@ -175,9 +173,20 @@ class _ClassesScreenState extends State<ClassesScreen> with SingleTickerProvider
 
     final searchVal = _searchController.text.toLowerCase();
 
+    // Dynamically build category list from database courses
+    final dynamicCategories = <String>[];
+    for (final course in appState.courses) {
+      final cat = course.category.trim();
+      if (cat.isNotEmpty && !dynamicCategories.any((c) => c.toLowerCase() == cat.toLowerCase())) {
+        dynamicCategories.add(cat);
+      }
+    }
+    final categories = ['All', ...dynamicCategories];
+
     // Filter available courses
     final availableCourses = appState.courses.where((course) {
-      final matchesCat = _selectedCategory == 'All' || course.category == _selectedCategory;
+      final matchesCat = _selectedCategory == 'All' ||
+          course.category.toLowerCase() == _selectedCategory.toLowerCase();
       final matchesSearch = course.title.toLowerCase().contains(searchVal) ||
           course.instructor.toLowerCase().contains(searchVal);
       return matchesCat && matchesSearch;
@@ -228,7 +237,7 @@ class _ClassesScreenState extends State<ClassesScreen> with SingleTickerProvider
           const SizedBox(height: 20),
 
           // Horizontal Categories
-          _buildCategoryChips(isDark),
+          _buildCategoryChips(isDark, categories),
           const SizedBox(height: 20),
 
           // Featured Track Section Header
@@ -374,16 +383,16 @@ class _ClassesScreenState extends State<ClassesScreen> with SingleTickerProvider
   }
 
   // Chips categories
-  Widget _buildCategoryChips(bool isDark) {
+  Widget _buildCategoryChips(bool isDark, List<String> categories) {
     return SizedBox(
       height: 38,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: _categories.length,
+        itemCount: categories.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final cat = _categories[index];
-          final isSelected = _selectedCategory == cat;
+          final cat = categories[index];
+          final isSelected = _selectedCategory.toLowerCase() == cat.toLowerCase();
           return ChoiceChip(
             label: Text(cat),
             selected: isSelected,

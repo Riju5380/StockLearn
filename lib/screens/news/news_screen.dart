@@ -22,8 +22,6 @@ class _NewsScreenState extends State<NewsScreen> {
   /// Currently selected category filter for the news feed.
   String _selectedCategory = 'All Stories';
 
-  /// List of filterable news categories.
-  final List<String> _categories = ['All Stories', 'Market', 'Global', 'Regulatory', 'Taxes'];
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +91,16 @@ class _NewsScreenState extends State<NewsScreen> {
       );
     }
 
+    // Dynamically build category list from database articles
+    final dynamicCategories = <String>[];
+    for (final article in allArticles) {
+      final cat = article.category.trim();
+      if (cat.isNotEmpty && !dynamicCategories.any((c) => c.toLowerCase() == cat.toLowerCase())) {
+        dynamicCategories.add(cat);
+      }
+    }
+    final categories = ['All Stories', ...dynamicCategories];
+
     // Identify the featured article (n_featured) or fallback to first
     final featuredArticle = allArticles.firstWhere(
       (a) => a.id == 'n_featured',
@@ -143,7 +151,7 @@ class _NewsScreenState extends State<NewsScreen> {
           ],
 
           // 2. Horizontally scrollable Category Chips
-          _buildCategoryChips(isDark),
+          _buildCategoryChips(isDark, categories),
           const SizedBox(height: 20),
 
           // 3. News stories list
@@ -279,16 +287,16 @@ class _NewsScreenState extends State<NewsScreen> {
   }
 
   // Categories list
-  Widget _buildCategoryChips(bool isDark) {
+  Widget _buildCategoryChips(bool isDark, List<String> categories) {
     return SizedBox(
       height: 38,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: _categories.length,
+        itemCount: categories.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final cat = _categories[index];
-          final isSelected = _selectedCategory == cat;
+          final cat = categories[index];
+          final isSelected = _selectedCategory.toLowerCase() == cat.toLowerCase();
           return ChoiceChip(
             label: Text(cat),
             selected: isSelected,

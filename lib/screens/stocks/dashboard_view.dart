@@ -17,16 +17,9 @@ class DashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppStateProvider>(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    // Filter stocks for lists
+
+    // Filter stocks for wishlist
     final wishlistStocks = appState.stocks.where((s) => s.isFavorite).toList();
-    
-    final sortedStocks = List<Stock>.from(appState.stocks)
-      ..sort((a, b) => b.changePercent.compareTo(a.changePercent));
-    
-    final gainers = sortedStocks.take(3).toList();
-    final losers = sortedStocks.reversed.take(3).toList();
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -60,54 +53,13 @@ class DashboardView extends StatelessWidget {
               },
             ),
           const SizedBox(height: 24),
-
-          // 4. Top Gainers
-          _buildSectionHeader(context, 'Top Gainers', () => onNavigateToTab(1)),
-          const SizedBox(height: 12),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: gainers.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              return _buildStockRow(context, gainers[index]);
-            },
-          ),
-          const SizedBox(height: 24),
-
-          // 5. Top Losers
-          _buildSectionHeader(context, 'Top Losers', () => onNavigateToTab(1)),
-          const SizedBox(height: 12),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: losers.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              return _buildStockRow(context, losers[index]);
-            },
-          ),
-          const SizedBox(height: 24),
-
-          // 6. Your Progress Card
-          _buildProgressCard(context),
-          const SizedBox(height: 24),
-
-          // 7. Daily Challenge Card
-          _buildDailyChallengeCard(context),
-          const SizedBox(height: 24),
-
-          // 8. Pro Tip Card
-          _buildProTipCard(context),
-          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  // Virtual Balance Card matching screenshot
+  // Virtual Balance Card
   Widget _buildBalanceCard(BuildContext context, AppStateProvider appState) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final pl = appState.dailyProfitLossInr;
     final plPercent = appState.dailyProfitLossPercent;
     
@@ -211,7 +163,7 @@ class DashboardView extends StatelessWidget {
     );
   }
 
-  // Quick Actions Grid matching screenshots
+  // Quick Actions Grid displaying 7 feature options
   Widget _buildQuickActionsGrid(BuildContext context) {
     final appState = Provider.of<AppStateProvider>(context, listen: false);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -221,7 +173,7 @@ class DashboardView extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 12.0),
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF151D30) : Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -230,20 +182,23 @@ class DashboardView extends StatelessWidget {
             ),
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: FaIcon(icon, size: 20, color: color),
               ),
-              const Spacer(),
+              const SizedBox(height: 8),
               Text(
                 label,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -252,25 +207,60 @@ class DashboardView extends StatelessWidget {
     }
 
     return GridView.count(
-      crossAxisCount: 2,
+      crossAxisCount: 3,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 14,
-      mainAxisSpacing: 14,
-      childAspectRatio: 1.5,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 1.05,
       children: [
-        actionCard('Market', FontAwesomeIcons.chartLine, const Color(0xFF2563EB), () => onNavigateToTab(1)),
-        actionCard('Portfolio', FontAwesomeIcons.wallet, const Color(0xFF10B981), () => onNavigateToTab(2)),
-        actionCard('Learn', FontAwesomeIcons.bookOpen, const Color(0xFFD97706), () {
-          appState.setNavigationIndex(1);
-          appState.setClassesTabIndex(1);
-        }),
-        actionCard('History', FontAwesomeIcons.clockRotateLeft, const Color(0xFF7C3AED), () => onNavigateToTab(3)),
+        actionCard(
+          'Virtual Trading',
+          FontAwesomeIcons.chartLine,
+          const Color(0xFF2563EB),
+          () => showUnderDevelopmentDialog(context, 'Virtual Trading'),
+        ),
+        actionCard(
+          'Courses',
+          FontAwesomeIcons.graduationCap,
+          const Color(0xFF10B981),
+          () => appState.setNavigationIndex(1),
+        ),
+        actionCard(
+          'Live Classes',
+          FontAwesomeIcons.video,
+          const Color(0xFFEF4444),
+          () => showUnderDevelopmentDialog(context, 'Live Classes'),
+        ),
+        actionCard(
+          'News',
+          FontAwesomeIcons.newspaper,
+          const Color(0xFFF59E0B),
+          () => appState.setNavigationIndex(2),
+        ),
+        actionCard(
+          'IPO\'s',
+          FontAwesomeIcons.rocket,
+          const Color(0xFF8B5CF6),
+          () => showUnderDevelopmentDialog(context, 'IPO\'s'),
+        ),
+        actionCard(
+          'Community Chat',
+          FontAwesomeIcons.comments,
+          const Color(0xFFEC4899),
+          () => showUnderDevelopmentDialog(context, 'Community Chat'),
+        ),
+        actionCard(
+          'Exams & Certification',
+          FontAwesomeIcons.award,
+          const Color(0xFF14B8A6),
+          () => showUnderDevelopmentDialog(context, 'Exams & Certification'),
+        ),
       ],
     );
   }
 
-  // Stock Row Design used on Wishlist, Gainers, Losers
+  // Stock Row Design used on Wishlist
   Widget _buildStockRow(BuildContext context, Stock stock) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final pl = stock.changePercent;
@@ -406,228 +396,11 @@ class DashboardView extends StatelessWidget {
     );
   }
 
-  // Your Progress card matching screenshots
-  Widget _buildProgressCard(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF151D30) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.school_outlined, color: Color(0xFF1E3A8A)),
-              const SizedBox(width: 8),
-              Text(
-                'Your Progress',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('Beginner Level', style: TextStyle(fontWeight: FontWeight.w600)),
-              Text('65%', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: const LinearProgressIndicator(
-              value: 0.65,
-              minHeight: 8,
-              backgroundColor: Colors.black12,
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E3A8A)),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('LESSONS', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                      SizedBox(height: 4),
-                      Text('12/18', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('QUIZ SCORE', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                      SizedBox(height: 4),
-                      Text('850', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Keep it up! Complete 3 more lessons to unlock the Intermediate Trading certificate.',
-            style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : Colors.grey[600]),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              showUnderDevelopmentDialog(context, 'Continue Learning');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E3A8A),
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 44),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Continue Learning', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Daily Challenge card matching screenshots
-  Widget _buildDailyChallengeCard(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF151D30) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.bolt, color: Color(0xFFD97706)),
-              SizedBox(width: 8),
-              Text(
-                'Daily Challenge',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Predict Nifty 50 close price within ±0.2% range.',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
-              const SizedBox(width: 4),
-              Text('Ends in 4h', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
-              const SizedBox(width: 16),
-              Icon(Icons.emoji_events_outlined, size: 14, color: Colors.grey[500]),
-              const SizedBox(width: 4),
-              Text('Reward: 500 Coins', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
-            ],
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text('Daily Challenge'),
-                  content: const Text('This is a simulated challenge. Predict the closed price of Nifty50. Submissions will open during live hours.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Got it'),
-                    ),
-                  ],
-                ),
-              );
-            },
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 44),
-              side: const BorderSide(color: Color(0xFF1E3A8A)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Participate', style: TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Pro Tip card matching screenshots
-  Widget _buildProTipCard(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B).withOpacity(0.4) : const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.lightbulb_outline, color: Color(0xFFD97706)),
-              SizedBox(width: 8),
-              Text('Pro Tip: Volatility', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '"High volatility doesn\'t always mean a bad investment. It means price swings are frequent, which can create entry opportunities for long-term growth."',
-            style: TextStyle(
-              fontSize: 12,
-              fontStyle: FontStyle.italic,
-              color: isDark ? Colors.grey[300] : Colors.grey[700],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // Currency formatting helper
   String _formatCurrency(double val) {
     if (val >= 10000000) {
       return '${(val / 10000000).toStringAsFixed(2)} Cr';
     } else if (val >= 100000) {
-      // Indian format support (e.g. 1,00,000)
       return val.toStringAsFixed(2);
     }
     return val.toStringAsFixed(2);
