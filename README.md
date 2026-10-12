@@ -1,30 +1,33 @@
-# 📈 StockLearn — Stock Market Learning App
+# 📈 StockLearn — Virtual Stock Market Simulator
 
-A Flutter-based mobile app project focused on modern UI design, visual consistency, and user experience in the stock market learning space.
+**StockLearn** is a Flutter mobile app project designed to explore modern fintech UI/UX and create a visually engaging virtual stock market experience.
 
-I built this project primarily to explore and showcase my mobile app design skills, experiment with polished interfaces, and turn design inspiration into a functional Flutter application.
+I built this project to challenge my design skills, experiment with layouts inspired by modern finance apps, and turn creative ideas into a working mobile application. I used **Claude Code** to assist with coding and explored design inspiration from various platforms throughout the process.
 
-### ✨ About the Project
+## ✨ Key Highlights
 
-- 🎨 **UI/UX Design:** Focused on creating a clean, modern, and engaging mobile experience.
-- 📱 **Flutter Development:** Built using Flutter to bring the app's interface to life.
-- 🤖 **AI-Assisted Development:** Used Claude Code to assist with implementation and development.
-- 💡 **Design Inspiration:** Explored design references from different platforms to develop my own implementation.
-- 📦 **APK Available:** Download and install the APK to explore the current app build.
-- 📴 **Offline Exploration:** The current build can be explored offline, although functionality requiring the separate admin system may not be available.
+- 📊 **Interactive Dashboard** — A finance-inspired overview of virtual balance, portfolio value, and daily profit/loss.
+- 📈 **Market Explorer** — Browse stock listings, market categories, price movements, and market sentiment.
+- 💼 **Portfolio Analytics** — Visualize investments, holdings, allocation, and overall profit/loss.
+- 🧾 **Trading History** — View simulated transactions, winning and losing trades, and trade summaries.
+- 👤 **Profile & Preferences** — A clean profile screen with appearance settings and account preferences.
+- 🎨 **Modern UI/UX** — Consistent colors, rounded cards, clear typography, and intuitive navigation.
+- 🤖 **AI-Assisted Development** — Built with help from Claude Code, alongside independent design exploration and implementation.
 
-### 🎯 Project Goal
+## 🛠️ Tech Stack
 
-The goal of this project is to demonstrate my approach to mobile UI/UX design and Flutter app development, with an emphasis on translating visual ideas into a working application.
+- **Framework:** Flutter
+- **Language:** Dart
+- **AI Coding Assistant:** Claude Code
 
-### 🛠️ Built With
+## 📲 Try StockLearn
 
-- Flutter
-- Dart
-- Claude Code for AI-assisted development
+An APK is available in the repository for installing and exploring the current app build offline.
 
-### 📲 Try the App
+**Important:** StockLearn is a virtual stock market simulator, not a real trading or investment application. Market data and displayed figures may be simulated or illustrative. The APK has not been independently security-audited, so please review its source and permissions before installing it.
 
-Visit the repository to find the source code and available APK, if included.
+## 🎯 Project Purpose
 
-**Note:** This is a learning and portfolio project, not a live stock trading or investment platform. Review the APK's source, permissions, and origin before installing it. I cannot guarantee the safety of a binary without independently verifying it.
+This project demonstrates my interest in mobile application design, Flutter development, and translating design inspiration into polished, functional interfaces.
+
+I'm continuously learning and improving my skills by building projects that combine thoughtful design with practical development.
