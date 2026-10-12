@@ -20,9 +20,11 @@ I built this project to challenge my design skills, experiment with layouts insp
 - **Language:** Dart
 - **AI Coding Assistant:** Claude Code
 
-## 📲 Try StockLearn
+## 📲 Download StockLearn
 
-An APK is available in the repository for installing and exploring the current app build offline.
+**[⬇️ Download StockLearn for Android](https://github.com/Riju5380/StockLearn/releases/latest)**
+
+Download the APK from the latest release and install it on your Android device. This is a virtual stock market simulator built as a Flutter portfolio project.
 
 **Important:** StockLearn is a virtual stock market simulator, not a real trading or investment application. Market data and displayed figures may be simulated or illustrative. The APK has not been independently security-audited, so please review its source and permissions before installing it.
 
